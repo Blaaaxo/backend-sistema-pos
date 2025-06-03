@@ -6,7 +6,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -14,19 +13,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/// Modelo de usuario principal
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
   password  String
   createdAt DateTime @default(now())
-  Profile   Profile?
+  profile   Profile?
 }
 
+/// Perfil extendido del usuario
 model Profile {
   id        Int      @id @default(autoincrement())
-  user_id   Int      @unique
+  userId    Int      @unique
   firstName String
   lastName  String
-  user      User     @relation(fields: [user_id], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
 }

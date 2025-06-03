@@ -11,12 +11,12 @@ async function bootstrap() {
   app.use(cookieParser());
 
   // Configurar CORS
-  app.enableCors(
+  /*app.enableCors(
     {
       origin: process.env.CORS_ORIGIN ?? 'http://localhost:3000',
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
       credentials: true, // Permitir credenciales (cookies, autenticación HTTP)
     }
-  );
+  );*/
 }
 bootstrap();
