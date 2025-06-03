@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/commo
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ConflictException } from '@nestjs/common';
 
 @Controller('users')
 export class UsersController {
@@ -18,7 +19,7 @@ export class UsersController {
     const existingUser = await this.usersService.findByEmail(createUserDto.email);
 
     if (existingUser) {
-      throw new Error('Este usuario ya existe con ese email');
+      throw new ConflictException('No se pudo crear el usuario');
     }
 
     // si no existe se crea el usuario
