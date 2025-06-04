@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Res, HttpCode, UnauthorizedException, Request, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Res, HttpCode, UnauthorizedException, Request, UseGuards, Get } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { Response } from 'express';
@@ -26,7 +26,7 @@ export class AuthController {
     const { access_token } = await this.authService.login(user);
 
     // Establecer el token JWT en las cookies de la respuesta.
-    res.cookie('token', access_token, {
+    res.cookie('access_token', access_token, {
       httpOnly: true,
       secure: true,
       sameSite: 'lax',
