@@ -1,7 +1,8 @@
-import { Controller, Post, Body, Res, HttpCode, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Body, Res, HttpCode, UnauthorizedException, Request, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { Response } from 'express';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('auth')
 export class AuthController {
@@ -33,5 +34,12 @@ export class AuthController {
     })
 
     return { message: 'Login successful' };
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('me')
+  getProfile(@Request() req) {
+    // Retornar la información del usuario autenticado
+    return req.user;
   }
 }
