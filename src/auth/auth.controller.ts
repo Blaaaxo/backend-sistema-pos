@@ -36,6 +36,20 @@ export class AuthController {
     return { message: 'Login successful' };
   }
 
+  /**
+   * Endpoint para cerrar sesión del usuario.
+   * @param res - Respuesta HTTP para eliminar el token JWT de las cookies.
+   * @throws UnauthorizedException si el usuario no está autenticado.
+   * @returns Un mensaje de éxito al cerrar sesión.
+   */
+  @Post('logout')
+  @HttpCode(200)
+  async logout(@Res({ passthrough: true }) res: Response) {
+    // Eliminar el token JWT de las cookies de la respuesta.
+    res.clearCookie('access_token');
+    return { message: 'Logout successful' };
+  }
+
   @UseGuards(AuthGuard('jwt'))
   @Post('me')
   getProfile(@Request() req) {
