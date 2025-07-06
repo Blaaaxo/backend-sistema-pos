@@ -21,10 +21,11 @@ model User {
   createdAt DateTime @default(now())
   profile   Profile?
 
-  ingresoCompras    IngresoCompra[]
+  ingresoCompras        IngresoCompra[]
   devolucionesProveedor DevolucionesProveedor[]
-  Kardex            Kardex[]
-  transferencias   TransferenciaBodega[]
+  Kardex                Kardex[]
+  transferencias        TransferenciaBodega[]
+  ordenCompras          OrdenCompra[]
 }
 
 /// Perfil extendido del usuario
@@ -60,13 +61,15 @@ model Producto {
   saludable_id Int?
   saludable    Impuestos? @relation("ProductoSaludable", fields: [saludable_id], references: [id])
 
-  ingresosDetalle     IngresoCompraDetalle[]
+  ingresosDetalle              IngresoCompraDetalle[]
   devolucionesProveedorDetalle DevolucionesProveedorDetalle[]
-  kardex              Kardex[]
-  preciosHistorial    ProductoPrecioHistorial[]
+  kardex                       Kardex[]
+  preciosHistorial             ProductoPrecioHistorial[]
 
   existenciasBodega ExistenciaProductoBodega[] // Relación inversa con ExistenciaProductoBodega
-  transferencias TransferenciaDetalle[] // Relación inversa con TransferenciaDetalle
+  transferencias    TransferenciaDetalle[] // Relación inversa con TransferenciaDetalle
+
+  ordenCompraDetalles OrdenCompraDetalle[] // Relación inversa con OrdenCompraDetalle
 }
 
 model Bodega {
@@ -75,12 +78,12 @@ model Bodega {
   direccion String?
   ciudad    String?
 
-  productos ExistenciaProductoBodega[]
-  ingresos  IngresoCompra[]
-  devolucionesProveedor   DevolucionesProveedor[]
-  kardex    Kardex[]
-  BodegaOrigen TransferenciaBodega[] @relation("BodegaOrigen")
-  BodegaDestino TransferenciaBodega[] @relation("BodegaDestino")
+  productos             ExistenciaProductoBodega[]
+  ingresos              IngresoCompra[]
+  devolucionesProveedor DevolucionesProveedor[]
+  kardex                Kardex[]
+  BodegaOrigen          TransferenciaBodega[]      @relation("BodegaOrigen")
+  BodegaDestino         TransferenciaBodega[]      @relation("BodegaDestino")
 }
 
 model ExistenciaProductoBodega {
@@ -113,49 +116,84 @@ model Proveedor {
   telefono  String?
   correo    String?
 
-  compras   IngresoCompra[]
-  productos Producto[] // Relación inversa con Producto
+  compras     IngresoCompra[]
+  productos   Producto[] // Relación inversa con Producto
+  ordebCompra OrdenCompra[] // Relación inversa con OrdenCompra
 }
 
-model IngresoCompra {
+model OrdenCompra {
   id            Int      @id @default(autoincrement())
-  fecha         DateTime
-  user_id       Int
-  proveedor_id  Int
-  bodega_id     Int
+  fecha         DateTime @default(now())
+  estado        String // 'pendiente' | 'recibida' | 'anulada'
   observaciones String?
 
-  total_con_imp Decimal @db.Decimal(12, 2) // Total de la compra
-  total_sin_imp Decimal @db.Decimal(12, 2) // Total sin impuestos
+  proveedor_id Int
+  proveedor    Proveedor @relation(fields: [proveedor_id], references: [id])
 
-  proveedor Proveedor              @relation(fields: [proveedor_id], references: [id])
-  bodega    Bodega                 @relation(fields: [bodega_id], references: [id])
-  user      User                   @relation(fields: [user_id], references: [id])
-  detalles  IngresoCompraDetalle[]
+  user_id Int
+  user    User @relation(fields: [user_id], references: [id])
+
+  detalles OrdenCompraDetalle[]
+  ingresos IngresoCompra[] // Relación inversa para trazabilidad
 }
 
-model IngresoCompraDetalle {
-  id               Int           @id @default(autoincrement())
-  ingresoCompra_id Int
-  ingresoCompra    IngresoCompra @relation(fields: [ingresoCompra_id], references: [id])
-
+model OrdenCompraDetalle {
+  id          Int @id @default(autoincrement())
+  orden_id    Int
   producto_id Int
-  producto    Producto @relation(fields: [producto_id], references: [id])
 
   cantidad        Decimal @db.Decimal(12, 2)
   precio_unitario Decimal @db.Decimal(12, 2)
 
-  iva_porcentaje Decimal? @db.Decimal(5, 2)
-  iva_valor      Decimal? @db.Decimal(12, 2)
+  iva_porcentaje       Decimal? @db.Decimal(5, 2)
+  consumo_porcentaje   Decimal? @db.Decimal(5, 2)
+  saludable_porcentaje Decimal? @db.Decimal(5, 2)
 
-  consumo_porcentaje Decimal? @db.Decimal(5, 2)
-  consumo_valor      Decimal? @db.Decimal(12, 2)
+  orden    OrdenCompra @relation(fields: [orden_id], references: [id])
+  producto Producto    @relation(fields: [producto_id], references: [id])
+}
 
+model IngresoCompra {
+  id            Int      @id @default(autoincrement())
+  fecha         DateTime @default(now())
+  observaciones String?
+
+  user_id         Int
+  proveedor_id    Int
+  bodega_id       Int
+  orden_compra_id Int?
+
+  total_con_imp Decimal @db.Decimal(12, 2)
+  total_sin_imp Decimal @db.Decimal(12, 2)
+
+  proveedor   Proveedor    @relation(fields: [proveedor_id], references: [id])
+  bodega      Bodega       @relation(fields: [bodega_id], references: [id])
+  user        User         @relation(fields: [user_id], references: [id])
+  ordenCompra OrdenCompra? @relation(fields: [orden_compra_id], references: [id])
+
+  detalles IngresoCompraDetalle[]
+}
+
+model IngresoCompraDetalle {
+  id               Int @id @default(autoincrement())
+  ingresoCompra_id Int
+  producto_id      Int
+
+  cantidad        Decimal @db.Decimal(12, 2)
+  precio_unitario Decimal @db.Decimal(12, 2)
+
+  iva_porcentaje       Decimal? @db.Decimal(5, 2)
+  iva_valor            Decimal? @db.Decimal(12, 2)
+  consumo_porcentaje   Decimal? @db.Decimal(5, 2)
+  consumo_valor        Decimal? @db.Decimal(12, 2)
   saludable_porcentaje Decimal? @db.Decimal(5, 2)
   saludable_valor      Decimal? @db.Decimal(12, 2)
 
   otros_costos Decimal? @db.Decimal(12, 2)
   costo_total  Decimal  @db.Decimal(12, 2)
+
+  ingresoCompra IngresoCompra @relation(fields: [ingresoCompra_id], references: [id])
+  producto      Producto      @relation(fields: [producto_id], references: [id])
 }
 
 model DevolucionesProveedor {
@@ -196,29 +234,28 @@ model DevolucionesProveedorDetalle {
 }
 
 model TransferenciaBodega {
-  id               Int      @id @default(autoincrement())
-  fecha            DateTime
-  bodega_origen_id Int
+  id                Int      @id @default(autoincrement())
+  fecha             DateTime
+  bodega_origen_id  Int
   bodega_destino_id Int
-  user_id          Int
-  observaciones    String?
+  user_id           Int
+  observaciones     String?
 
-  bodega_origen    Bodega   @relation("BodegaOrigen", fields: [bodega_origen_id], references: [id])
-  bodega_destino   Bodega   @relation("BodegaDestino", fields: [bodega_destino_id], references: [id])
-  user             User     @relation(fields: [user_id], references: [id])
-  detalles         TransferenciaDetalle[]
+  bodega_origen  Bodega                 @relation("BodegaOrigen", fields: [bodega_origen_id], references: [id])
+  bodega_destino Bodega                 @relation("BodegaDestino", fields: [bodega_destino_id], references: [id])
+  user           User                   @relation(fields: [user_id], references: [id])
+  detalles       TransferenciaDetalle[]
 }
 
 model TransferenciaDetalle {
-  id                  Int     @id @default(autoincrement())
-  transferencia_id    Int
-  producto_id         Int
-  cantidad            Decimal @db.Decimal(12, 2)
+  id               Int     @id @default(autoincrement())
+  transferencia_id Int
+  producto_id      Int
+  cantidad         Decimal @db.Decimal(12, 2)
 
-  transferencia       TransferenciaBodega @relation(fields: [transferencia_id], references: [id])
-  producto            Producto            @relation(fields: [producto_id], references: [id])
+  transferencia TransferenciaBodega @relation(fields: [transferencia_id], references: [id])
+  producto      Producto            @relation(fields: [producto_id], references: [id])
 }
-
 
 model Kardex {
   id          Int @id @default(autoincrement())
