@@ -10,7 +10,7 @@ import {
 import { DevolucionComprasService } from './devolucion-compras.service';
 import { CreateDevolucionComprasDTO } from './dto/create-devolucion-compras.dto';
   
-  @Controller('devoluciones-proveedor')
+  @Controller('devoluciones-compras')
   export class DevolucionComprasController {
     constructor(private readonly service: DevolucionComprasService) {}
   
