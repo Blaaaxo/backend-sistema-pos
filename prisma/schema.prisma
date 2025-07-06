@@ -20,6 +20,11 @@ model User {
   password  String
   createdAt DateTime @default(now())
   profile   Profile?
+
+  ingresoCompras    IngresoCompra[]
+  devolucionesProveedor DevolucionesProveedor[]
+  Kardex            Kardex[]
+  transferencias   TransferenciaBodega[]
 }
 
 /// Perfil extendido del usuario
@@ -30,4 +35,245 @@ model Profile {
   lastName  String
   user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
+}
+
+model Producto {
+  id             Int      @id @default(autoincrement())
+  Descripcion    String
+  codigo         String   @unique
+  precio_base    Decimal  @db.Decimal(12, 2)
+  costo_promedio Decimal? @db.Decimal(12, 2)
+
+  activo        Boolean @default(true)
+  unidad_medida String
+
+  proveedor_id Int
+  proveedor    Proveedor @relation(fields: [proveedor_id], references: [id])
+
+  categoria_id Int
+  categoria    Categoria @relation(fields: [categoria_id], references: [id])
+
+  iva_id       Int?
+  iva          Impuestos? @relation("ProductoIva", fields: [iva_id], references: [id])
+  consumo_id   Int?
+  consumo      Impuestos? @relation("ProductoConsumo", fields: [consumo_id], references: [id])
+  saludable_id Int?
+  saludable    Impuestos? @relation("ProductoSaludable", fields: [saludable_id], references: [id])
+
+  ingresosDetalle     IngresoCompraDetalle[]
+  devolucionesProveedorDetalle DevolucionesProveedorDetalle[]
+  kardex              Kardex[]
+  preciosHistorial    ProductoPrecioHistorial[]
+
+  existenciasBodega ExistenciaProductoBodega[] // Relación inversa con ExistenciaProductoBodega
+  transferencias TransferenciaDetalle[] // Relación inversa con TransferenciaDetalle
+}
+
+model Bodega {
+  id        Int     @id @default(autoincrement())
+  nombre    String
+  direccion String?
+  ciudad    String?
+
+  productos ExistenciaProductoBodega[]
+  ingresos  IngresoCompra[]
+  devolucionesProveedor   DevolucionesProveedor[]
+  kardex    Kardex[]
+  BodegaOrigen TransferenciaBodega[] @relation("BodegaOrigen")
+  BodegaDestino TransferenciaBodega[] @relation("BodegaDestino")
+}
+
+model ExistenciaProductoBodega {
+  id          Int @id @default(autoincrement())
+  producto_id Int
+  bodega_id   Int
+  stock       Int // cantidad actual
+
+  producto Producto @relation(fields: [producto_id], references: [id])
+  bodega   Bodega   @relation(fields: [bodega_id], references: [id])
+
+  @@unique([producto_id, bodega_id]) // evita duplicados por producto+bodega
+}
+
+model ProductoPrecioHistorial {
+  id          Int      @id @default(autoincrement())
+  producto_id Int
+  producto    Producto @relation(fields: [producto_id], references: [id])
+
+  precio_base  Decimal   @db.Decimal(12, 2)
+  fecha_inicio DateTime
+  fecha_fin    DateTime?
+}
+
+model Proveedor {
+  id        Int     @id @default(autoincrement())
+  nombre    String
+  nit       String  @unique
+  direccion String?
+  telefono  String?
+  correo    String?
+
+  compras   IngresoCompra[]
+  productos Producto[] // Relación inversa con Producto
+}
+
+model IngresoCompra {
+  id            Int      @id @default(autoincrement())
+  fecha         DateTime
+  user_id       Int
+  proveedor_id  Int
+  bodega_id     Int
+  observaciones String?
+
+  total_con_imp Decimal @db.Decimal(12, 2) // Total de la compra
+  total_sin_imp Decimal @db.Decimal(12, 2) // Total sin impuestos
+
+  proveedor Proveedor              @relation(fields: [proveedor_id], references: [id])
+  bodega    Bodega                 @relation(fields: [bodega_id], references: [id])
+  user      User                   @relation(fields: [user_id], references: [id])
+  detalles  IngresoCompraDetalle[]
+}
+
+model IngresoCompraDetalle {
+  id               Int           @id @default(autoincrement())
+  ingresoCompra_id Int
+  ingresoCompra    IngresoCompra @relation(fields: [ingresoCompra_id], references: [id])
+
+  producto_id Int
+  producto    Producto @relation(fields: [producto_id], references: [id])
+
+  cantidad        Decimal @db.Decimal(12, 2)
+  precio_unitario Decimal @db.Decimal(12, 2)
+
+  iva_porcentaje Decimal? @db.Decimal(5, 2)
+  iva_valor      Decimal? @db.Decimal(12, 2)
+
+  consumo_porcentaje Decimal? @db.Decimal(5, 2)
+  consumo_valor      Decimal? @db.Decimal(12, 2)
+
+  saludable_porcentaje Decimal? @db.Decimal(5, 2)
+  saludable_valor      Decimal? @db.Decimal(12, 2)
+
+  otros_costos Decimal? @db.Decimal(12, 2)
+  costo_total  Decimal  @db.Decimal(12, 2)
+}
+
+model DevolucionesProveedor {
+  id            Int      @id @default(autoincrement())
+  motivo_salida String
+  fecha         DateTime
+  user_id       Int
+  bodega_id     Int
+  observaciones String?
+
+  total_con_imp Decimal @db.Decimal(12, 2) // Total de la salida
+  total_sin_imp Decimal @db.Decimal(12, 2) // Total sin impuestos
+
+  bodega   Bodega                         @relation(fields: [bodega_id], references: [id])
+  user     User                           @relation(fields: [user_id], references: [id])
+  detalles DevolucionesProveedorDetalle[]
+}
+
+model DevolucionesProveedorDetalle {
+  id            Int                   @id @default(autoincrement())
+  devolucion_id Int
+  devolucion    DevolucionesProveedor @relation(fields: [devolucion_id], references: [id])
+
+  producto_id Int
+  producto    Producto @relation(fields: [producto_id], references: [id])
+
+  cantidad       Decimal @db.Decimal(12, 2)
+  costo_unitario Decimal @db.Decimal(12, 2)
+
+  iva_porcentaje Decimal? @db.Decimal(5, 2)
+  iva_valor      Decimal? @db.Decimal(12, 2)
+
+  consumo_porcentaje Decimal? @db.Decimal(5, 2)
+  consumo_valor      Decimal? @db.Decimal(12, 2)
+
+  saludable_porcentaje Decimal? @db.Decimal(5, 2)
+  saludable_valor      Decimal? @db.Decimal(12, 2)
+}
+
+model TransferenciaBodega {
+  id               Int      @id @default(autoincrement())
+  fecha            DateTime
+  bodega_origen_id Int
+  bodega_destino_id Int
+  user_id          Int
+  observaciones    String?
+
+  bodega_origen    Bodega   @relation("BodegaOrigen", fields: [bodega_origen_id], references: [id])
+  bodega_destino   Bodega   @relation("BodegaDestino", fields: [bodega_destino_id], references: [id])
+  user             User     @relation(fields: [user_id], references: [id])
+  detalles         TransferenciaDetalle[]
+}
+
+model TransferenciaDetalle {
+  id                  Int     @id @default(autoincrement())
+  transferencia_id    Int
+  producto_id         Int
+  cantidad            Decimal @db.Decimal(12, 2)
+
+  transferencia       TransferenciaBodega @relation(fields: [transferencia_id], references: [id])
+  producto            Producto            @relation(fields: [producto_id], references: [id])
+}
+
+
+model Kardex {
+  id          Int @id @default(autoincrement())
+  producto_id Int
+  bodega_id   Int
+
+  fecha            DateTime
+  tipo_movimiento  String // 'entrada' | 'salida' | 'ajuste'
+  documento_origen String // Ej: 'orden_compra', 'ajuste_stock', etc.
+  documento_id     Int // ID del ingreso o salida o ajuste
+
+  cantidad         Int // unidades que entraron o salieron
+  costo_unitario   Decimal @db.Decimal(12, 2) // valor de costo del producto en ese movimiento
+  stock_resultante Int // stock total del producto en esa bodega después del movimiento
+
+  user_id       Int
+  observaciones String?
+
+  producto Producto @relation(fields: [producto_id], references: [id])
+  bodega   Bodega   @relation(fields: [bodega_id], references: [id])
+  user     User     @relation(fields: [user_id], references: [id])
+}
+
+model Departamentos {
+  id          Int    @id @default(autoincrement())
+  nombre      String @unique
+  codigo_dane String @unique
+
+  ciudades Ciudades[] @relation("DepartamentoCiudades")
+}
+
+model Ciudades {
+  id          Int    @id @default(autoincrement())
+  nombre      String
+  codigo_dane String @unique
+
+  departamento_id Int
+  departamento    Departamentos @relation("DepartamentoCiudades", fields: [departamento_id], references: [id])
+}
+
+model Impuestos {
+  id         Int     @id @default(autoincrement())
+  nombre     String
+  porcentaje Decimal @db.Decimal(5, 2)
+  tipo       String // 'iva', 'consumo', 'saludable'
+
+  productos          Producto[] @relation("ProductoIva")
+  productosConsumo   Producto[] @relation("ProductoConsumo")
+  productosSaludable Producto[] @relation("ProductoSaludable")
+}
+
+model Categoria {
+  id          Int     @id @default(autoincrement())
+  nombre      String  @unique
+  descripcion String?
+
+  productos Producto[]
 }
