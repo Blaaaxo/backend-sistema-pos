@@ -19,8 +19,8 @@ model User {
   email     String   @unique
   password  String
   createdAt DateTime @default(now())
-  profile   Profile?
 
+  profile   Profile?
   ingresoCompras        IngresoCompra[]
   devolucionesProveedor DevolucionesProveedor[]
   Kardex                Kardex[]
@@ -31,10 +31,10 @@ model User {
 /// Perfil extendido del usuario
 model Profile {
   id        Int      @id @default(autoincrement())
-  userId    Int      @unique
+  userId    Int?      @unique
   firstName String
   lastName  String
-  user      User     @relation(fields: [userId], references: [id])
+  user      User?     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
 }
 
