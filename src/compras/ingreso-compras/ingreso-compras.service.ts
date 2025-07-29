@@ -53,7 +53,7 @@ export class IngresoCompraService {
                         saludable_porcentaje: detalle.saludable_porcentaje,
                         saludable_valor: detalle.saludable_valor,
                         otros_costos: detalle.otros_costos,
-                        costo_total: detalle.costo_total,
+                        costo_total: detalle.costo_total ?? 0,
                     })),
                 },
             },
@@ -72,7 +72,7 @@ export class IngresoCompraService {
             const costoUnitario = detalle.precio_unitario;
 
             // Buscar existencia actual
-            const existencia = await this.prisma.existenciaProductoBodega.findUnique({
+            const existencia = await this.prisma.existenciaProducto.findUnique({
                 where: {
                     producto_id_bodega_id: {
                         producto_id: productoId,
@@ -81,27 +81,32 @@ export class IngresoCompraService {
                 },
             });
 
-            let nuevoStock = cantidad;
+            let nuevoStockBueno = cantidad;
 
             if (existencia) {
-                // Actualizar stock existente
-                nuevoStock = existencia.stock + cantidad;
-                await this.prisma.existenciaProductoBodega.update({
+                // Actualizar stock_bueno existente
+                await this.prisma.existenciaProducto.update({
                     where: {
                         producto_id_bodega_id: {
                             producto_id: productoId,
                             bodega_id: ingreso.bodega_id,
                         },
                     },
-                    data: { stock: nuevoStock },
+                    data: {
+                        stock_bueno: {
+                            increment: cantidad,
+                        },
+                    },
                 });
             } else {
-                // Crear nueva existencia
-                await this.prisma.existenciaProductoBodega.create({
+                // Crear nueva existencia con stock_bueno
+                await this.prisma.existenciaProducto.create({
                     data: {
                         producto: { connect: { id: productoId } },
                         bodega: { connect: { id: ingreso.bodega_id } },
-                        stock: cantidad,
+                        stock_bueno: cantidad,
+                        stock_malo: 0,
+                        stock_transito: 0,
                     },
                 });
             }
@@ -117,7 +122,7 @@ export class IngresoCompraService {
                     documento_id: ingreso.id,
                     cantidad,
                     costo_unitario: costoUnitario,
-                    stock_resultante: nuevoStock,
+                    stock_resultante: existencia ? existencia.stock_bueno + cantidad : cantidad,
                     user: { connect: { id: userId } },
                     observaciones: `Ingreso de compra #${ingreso.id}`,
                 },
