@@ -54,14 +54,17 @@ model ConfiguracionEmpresa {
   id              Int      @id @default(autoincrement())
   nombre          String
   nit             String   @unique
-  tipo_persona    String // 'natural' o 'juridica'
+  tipo_persona    TipoPersona
   direccion       String?
   telefono        String?
   correo          String?
-  representante   String? // Nombre del representante legal
-  regimen         String? // Ej: 'común', 'simplificado'
-  resolucion_dian String? // Número de resolución DIAN si aplica
-  fecha_creacion  DateTime
+  representante   String?  // Nombre del representante legal
+  regimen         Regimen?
+  resolucion_dian String?  // Número de resolución DIAN si aplica
+  fecha_creacion  DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
 }
 
 /// Perfil extendido del usuario
@@ -72,7 +75,7 @@ model Profile {
   lastName  String
   user      User?    @relation(fields: [user_id], references: [id])
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @updatedAt @default(now())
 }
 
 model Producto {
@@ -179,7 +182,7 @@ model Proveedor {
   ordebCompra OrdenCompra[]
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @updatedAt @default(now())
 }
 
 model OrdenCompra {
@@ -196,6 +199,12 @@ model OrdenCompra {
 
   detalles OrdenCompraDetalle[]
   ingresos IngresoCompra[] // Relación inversa para trazabilidad
+
+  total_con_imp Decimal @db.Decimal(12, 2) // Total de la orden con impuestos
+  total_sin_imp Decimal @db.Decimal(12, 2) // Total de la orden sin impuestos
+
+  CreatedAt DateTime @default(now())
+  UpdatedAt DateTime @updatedAt @default(now())
 }
 
 model OrdenCompraDetalle {
@@ -238,7 +247,7 @@ model IngresoCompra {
   detalles IngresoCompraDetalle[]
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @updatedAt @default(now())
 }
 
 model IngresoCompraDetalle {
@@ -277,6 +286,8 @@ model DevolucionesProveedor {
   bodega   Bodega                         @relation(fields: [bodega_id], references: [id])
   user     User                           @relation(fields: [user_id], references: [id])
   detalles DevolucionesProveedorDetalle[]
+
+  createdAt DateTime @default(now())
 }
 
 model DevolucionesProveedorDetalle {
