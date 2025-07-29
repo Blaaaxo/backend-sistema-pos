@@ -51,20 +51,20 @@ model User {
 }
 
 model ConfiguracionEmpresa {
-  id              Int      @id @default(autoincrement())
+  id              Int         @id @default(autoincrement())
   nombre          String
-  nit             String   @unique
+  nit             String      @unique
   tipo_persona    TipoPersona
   direccion       String?
   telefono        String?
   correo          String?
-  representante   String?  // Nombre del representante legal
+  representante   String? // Nombre del representante legal
   regimen         Regimen?
-  resolucion_dian String?  // Número de resolución DIAN si aplica
-  fecha_creacion  DateTime @default(now())
+  resolucion_dian String? // Número de resolución DIAN si aplica
+  fecha_creacion  DateTime    @default(now())
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
 /// Perfil extendido del usuario
@@ -75,7 +75,7 @@ model Profile {
   lastName  String
   user      User?    @relation(fields: [user_id], references: [id])
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
 model Producto {
@@ -106,7 +106,7 @@ model Producto {
   kardex                       Kardex[]
   preciosHistorial             ProductoPrecioHistorial[]
 
-  existenciasBodega ExistenciaProductoBodega[] // Relación inversa con ExistenciaProductoBodega
+  existenciasBodega ExistenciaProducto[] // Relación inversa con ExistenciaProducto
   transferencias    TrasladosBodega[] // Relación inversa con TransferenciaDetalle
 
   ordenCompraDetalles OrdenCompraDetalle[] // Relación inversa con OrdenCompraDetalle
@@ -134,19 +134,22 @@ model Bodega {
   ciudad_id Int
   ciudad    Ciudades @relation(fields: [ciudad_id], references: [id])
 
-  productos             ExistenciaProductoBodega[]
+  productos             ExistenciaProducto[]
   ingresos              IngresoCompra[]
   devolucionesProveedor DevolucionesProveedor[]
   kardex                Kardex[]
-  BodegaOrigen          TrasladosBodega[]          @relation("BodegaOrigen")
-  BodegaDestino         TrasladosBodega[]          @relation("BodegaDestino")
+  BodegaOrigen          TrasladosBodega[]       @relation("BodegaOrigen")
+  BodegaDestino         TrasladosBodega[]       @relation("BodegaDestino")
 }
 
-model ExistenciaProductoBodega {
+model ExistenciaProducto {
   id          Int @id @default(autoincrement())
   producto_id Int
   bodega_id   Int
-  stock       Int // cantidad actual
+
+  stock_bueno    Int @default(0)
+  stock_malo     Int @default(0)
+  stock_transito Int @default(0)
 
   producto Producto @relation(fields: [producto_id], references: [id])
   bodega   Bodega   @relation(fields: [bodega_id], references: [id])
@@ -182,7 +185,7 @@ model Proveedor {
   ordebCompra OrdenCompra[]
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
 model OrdenCompra {
@@ -204,7 +207,7 @@ model OrdenCompra {
   total_sin_imp Decimal @db.Decimal(12, 2) // Total de la orden sin impuestos
 
   CreatedAt DateTime @default(now())
-  UpdatedAt DateTime @updatedAt @default(now())
+  UpdatedAt DateTime @default(now()) @updatedAt
 }
 
 model OrdenCompraDetalle {
@@ -247,7 +250,7 @@ model IngresoCompra {
   detalles IngresoCompraDetalle[]
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
 model IngresoCompraDetalle {
