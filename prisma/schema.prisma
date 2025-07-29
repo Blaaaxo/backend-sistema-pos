@@ -13,6 +13,28 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum TipoPersona {
+  natural
+  juridica
+}
+
+enum Regimen {
+  comun
+  simplificado
+}
+
+enum TipoImpuesto {
+  iva
+  consumo
+  saludable
+}
+
+enum TipoMovimiento {
+  entrada
+  salida
+  ajuste
+}
+
 /// Modelo de usuario principal
 model User {
   id        Int      @id @default(autoincrement())
@@ -20,22 +42,37 @@ model User {
   password  String
   createdAt DateTime @default(now())
 
-  profile   Profile?
+  profile               Profile?
   ingresoCompras        IngresoCompra[]
   devolucionesProveedor DevolucionesProveedor[]
   Kardex                Kardex[]
-  transferencias        TransferenciaBodega[]
+  traslados             TrasladosBodega[]
   ordenCompras          OrdenCompra[]
+}
+
+model ConfiguracionEmpresa {
+  id              Int      @id @default(autoincrement())
+  nombre          String
+  nit             String   @unique
+  tipo_persona    String // 'natural' o 'juridica'
+  direccion       String?
+  telefono        String?
+  correo          String?
+  representante   String? // Nombre del representante legal
+  regimen         String? // Ej: 'común', 'simplificado'
+  resolucion_dian String? // Número de resolución DIAN si aplica
+  fecha_creacion  DateTime
 }
 
 /// Perfil extendido del usuario
 model Profile {
   id        Int      @id @default(autoincrement())
-  userId    Int?      @unique
+  user_id   Int?     @unique
   firstName String
   lastName  String
-  user      User?     @relation(fields: [userId], references: [id])
+  user      User?    @relation(fields: [user_id], references: [id])
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Producto {
@@ -67,23 +104,39 @@ model Producto {
   preciosHistorial             ProductoPrecioHistorial[]
 
   existenciasBodega ExistenciaProductoBodega[] // Relación inversa con ExistenciaProductoBodega
-  transferencias    TransferenciaDetalle[] // Relación inversa con TransferenciaDetalle
+  transferencias    TrasladosBodega[] // Relación inversa con TransferenciaDetalle
 
   ordenCompraDetalles OrdenCompraDetalle[] // Relación inversa con OrdenCompraDetalle
+  TrasladosaDetalle   TrasladosaDetalle[]
+  presentaciones      PresentacionProducto[]
+}
+
+model PresentacionProducto {
+  id           Int    @id @default(autoincrement())
+  nombre       String // Ej: Caja de 12
+  equivalencia Int // Ej: 12 unidades
+  unidad_base  String // Ej: unidad, litro
+
+  producto_id Int
+  producto    Producto @relation(fields: [producto_id], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Bodega {
-  id        Int     @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   nombre    String
   direccion String?
-  ciudad    String?
+  ciudad_id Int
+  ciudad    Ciudades @relation(fields: [ciudad_id], references: [id])
 
   productos             ExistenciaProductoBodega[]
   ingresos              IngresoCompra[]
   devolucionesProveedor DevolucionesProveedor[]
   kardex                Kardex[]
-  BodegaOrigen          TransferenciaBodega[]      @relation("BodegaOrigen")
-  BodegaDestino         TransferenciaBodega[]      @relation("BodegaDestino")
+  BodegaOrigen          TrasladosBodega[]          @relation("BodegaOrigen")
+  BodegaDestino         TrasladosBodega[]          @relation("BodegaDestino")
 }
 
 model ExistenciaProductoBodega {
@@ -116,9 +169,17 @@ model Proveedor {
   telefono  String?
   correo    String?
 
+  aplica_retefuente     Boolean  @default(false)
+  porcentaje_retefuente Decimal? @db.Decimal(5, 2)
+  aplica_reteica        Boolean  @default(false)
+  porcentaje_reteica    Decimal? @db.Decimal(5, 2)
+
   compras     IngresoCompra[]
-  productos   Producto[] // Relación inversa con Producto
-  ordebCompra OrdenCompra[] // Relación inversa con OrdenCompra
+  productos   Producto[]
+  ordebCompra OrdenCompra[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model OrdenCompra {
@@ -166,12 +227,18 @@ model IngresoCompra {
   total_con_imp Decimal @db.Decimal(12, 2)
   total_sin_imp Decimal @db.Decimal(12, 2)
 
+  retefuente Decimal? @db.Decimal(12, 2)
+  reteica    Decimal? @db.Decimal(12, 2)
+
   proveedor   Proveedor    @relation(fields: [proveedor_id], references: [id])
   bodega      Bodega       @relation(fields: [bodega_id], references: [id])
   user        User         @relation(fields: [user_id], references: [id])
   ordenCompra OrdenCompra? @relation(fields: [orden_compra_id], references: [id])
 
   detalles IngresoCompraDetalle[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model IngresoCompraDetalle {
@@ -233,7 +300,7 @@ model DevolucionesProveedorDetalle {
   saludable_valor      Decimal? @db.Decimal(12, 2)
 }
 
-model TransferenciaBodega {
+model TrasladosBodega {
   id                Int      @id @default(autoincrement())
   fecha             DateTime
   bodega_origen_id  Int
@@ -241,20 +308,22 @@ model TransferenciaBodega {
   user_id           Int
   observaciones     String?
 
-  bodega_origen  Bodega                 @relation("BodegaOrigen", fields: [bodega_origen_id], references: [id])
-  bodega_destino Bodega                 @relation("BodegaDestino", fields: [bodega_destino_id], references: [id])
-  user           User                   @relation(fields: [user_id], references: [id])
-  detalles       TransferenciaDetalle[]
+  bodega_origen  Bodega              @relation("BodegaOrigen", fields: [bodega_origen_id], references: [id])
+  bodega_destino Bodega              @relation("BodegaDestino", fields: [bodega_destino_id], references: [id])
+  user           User                @relation(fields: [user_id], references: [id])
+  detalles       TrasladosaDetalle[]
+  Producto       Producto?           @relation(fields: [productoId], references: [id])
+  productoId     Int?
 }
 
-model TransferenciaDetalle {
+model TrasladosaDetalle {
   id               Int     @id @default(autoincrement())
   transferencia_id Int
   producto_id      Int
   cantidad         Decimal @db.Decimal(12, 2)
 
-  transferencia TransferenciaBodega @relation(fields: [transferencia_id], references: [id])
-  producto      Producto            @relation(fields: [producto_id], references: [id])
+  traslados TrasladosBodega @relation(fields: [transferencia_id], references: [id])
+  producto  Producto        @relation(fields: [producto_id], references: [id])
 }
 
 model Kardex {
@@ -263,13 +332,13 @@ model Kardex {
   bodega_id   Int
 
   fecha            DateTime
-  tipo_movimiento  String // 'entrada' | 'salida' | 'ajuste'
-  documento_origen String // Ej: 'orden_compra', 'ajuste_stock', etc.
-  documento_id     Int // ID del ingreso o salida o ajuste
+  tipo_movimiento  TipoMovimiento
+  documento_origen String
+  documento_id     Int
 
-  cantidad         Int // unidades que entraron o salieron
-  costo_unitario   Decimal @db.Decimal(12, 2) // valor de costo del producto en ese movimiento
-  stock_resultante Int // stock total del producto en esa bodega después del movimiento
+  cantidad         Int
+  costo_unitario   Decimal @db.Decimal(12, 2)
+  stock_resultante Int
 
   user_id       Int
   observaciones String?
@@ -277,6 +346,9 @@ model Kardex {
   producto Producto @relation(fields: [producto_id], references: [id])
   bodega   Bodega   @relation(fields: [bodega_id], references: [id])
   user     User     @relation(fields: [user_id], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Departamentos {
@@ -284,7 +356,7 @@ model Departamentos {
   nombre      String @unique
   codigo_dane String @unique
 
-  ciudades Ciudades[] @relation("DepartamentoCiudades")
+  ciudades Ciudades[]
 }
 
 model Ciudades {
@@ -293,7 +365,17 @@ model Ciudades {
   codigo_dane String @unique
 
   departamento_id Int
-  departamento    Departamentos @relation("DepartamentoCiudades", fields: [departamento_id], references: [id])
+  departamento    Departamentos @relation(fields: [departamento_id], references: [id])
+  bodegas         Bodega[]
+  barrios         Barrios[]
+}
+
+model Barrios {
+  id     Int    @id @default(autoincrement())
+  nombre String
+
+  ciudad_id Int
+  ciudad    Ciudades @relation(fields: [ciudad_id], references: [id])
 }
 
 model Impuestos {
