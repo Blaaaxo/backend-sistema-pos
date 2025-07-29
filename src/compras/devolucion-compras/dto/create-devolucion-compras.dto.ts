@@ -1,6 +1,7 @@
 import {
     IsArray,
     IsDecimal,
+    IsEnum,
     IsInt,
     IsOptional,
     IsPositive,
@@ -8,6 +9,12 @@ import {
     ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+
+export enum TipoStock {
+    BUENO = 'bueno',
+    MALO = 'malo',
+    TRANSITO = 'transito',
+}
 
 class DevolucionDetalleDTO {
     @IsInt()
@@ -19,6 +26,9 @@ class DevolucionDetalleDTO {
 
     @IsDecimal({ decimal_digits: '0,2' })
     costo_unitario: number;
+
+    @IsEnum(TipoStock)
+    tipo_stock: TipoStock;
 
     @IsOptional()
     @IsDecimal({ decimal_digits: '0,2' })

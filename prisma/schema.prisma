@@ -14,25 +14,28 @@ datasource db {
 }
 
 enum TipoPersona {
-  natural
-  juridica
+  NATURAL
+  JURIDICA
 }
 
 enum Regimen {
-  comun
-  simplificado
+  COMUN
+  SIMPLIFICADO
 }
 
 enum TipoImpuesto {
-  iva
-  consumo
-  saludable
+  IVA
+  CONSUMO
+  SALUDABLE
 }
 
 enum TipoMovimiento {
-  entrada
-  salida
-  ajuste
+  ENTRADA
+  SALIDA
+  DEVOLUCION_COMPRA
+  DEVOLUCION_VENTA
+  AJUSTE
+  TRASLADO
 }
 
 /// Modelo de usuario principal
