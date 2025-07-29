@@ -1,41 +1,56 @@
 import {
     IsArray,
-    IsDecimal,
     IsInt,
     IsOptional,
     IsPositive,
     IsString,
+    IsNumber,
     ValidateNested,
+    Min,
+    Max,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class OrdenCompraDetalleDTO {
     @IsInt()
+    @Type(() => Number)
     producto_id: number;
 
-    @IsDecimal({ decimal_digits: '0,2' })
+    @IsNumber({ maxDecimalPlaces: 2 })
     @IsPositive()
+    @Type(() => Number)
     cantidad: number;
 
-    @IsDecimal({ decimal_digits: '0,2' })
+    @IsNumber({ maxDecimalPlaces: 2 })
     @IsPositive()
+    @Type(() => Number)
     precio_unitario: number;
 
     @IsOptional()
-    @IsDecimal({ decimal_digits: '0,2' })
+    @IsNumber({ maxDecimalPlaces: 2 })
+    @Min(0)
+    @Max(100)
+    @Type(() => Number)
     iva_porcentaje?: number;
 
     @IsOptional()
-    @IsDecimal({ decimal_digits: '0,2' })
+    @IsNumber({ maxDecimalPlaces: 2 })
+    @Min(0)
+    @Max(100)
+    @Type(() => Number)
     consumo_porcentaje?: number;
 
     @IsOptional()
-    @IsDecimal({ decimal_digits: '0,2' })
+    @IsNumber({ maxDecimalPlaces: 2 })
+    @Min(0)
+    @Max(100)
+    @Type(() => Number)
     saludable_porcentaje?: number;
 }
 
 export class CreateOrdenCompraDTO {
     @IsInt()
+    @Type(() => Number)
     proveedor_id: number;
 
     @IsOptional()
