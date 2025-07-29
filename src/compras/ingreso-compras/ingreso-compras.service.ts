@@ -117,7 +117,7 @@ export class IngresoCompraService {
                     producto: { connect: { id: productoId } },
                     bodega: { connect: { id: ingreso.bodega_id } },
                     fecha: new Date(),
-                    tipo_movimiento: 'entrada',
+                    tipo_movimiento: 'ENTRADA',
                     documento_origen: 'ingreso_compra',
                     documento_id: ingreso.id,
                     cantidad,
